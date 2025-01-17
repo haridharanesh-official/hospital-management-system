@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-Time Patient Monitoring</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #121212;
+            color: #ffffff;
+            text-align: center;
+        }
+        .container {
+            width: 90%;
+            max-width: 800px;
+            margin: auto;
+            padding: 20px;
+        }
+        .sensor-box {
+            background: #1E1E1E;
+            padding: 20px;
+            margin: 10px;
+            border-radius: 10px;
+            box-shadow: 2px 2px 10px rgba(255, 255, 255, 0.1);
+        }
+        h1 {
+            color: #00D4FF;
+        }
+        canvas {
+            background: #1E1E1E;
+            border-radius: 10px;
+            padding: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Real-Time Patient Monitoring</h1>
+        <div class="sensor-box">
+            <h2>Heart Rate: <span id="heartRate">--</span> BPM</h2>
+        </div>
+        <div class="sensor-box">
+            <h2>Temperature: <span id="temperature">--</span> °C</h2>
+        </div>
+        <div class="sensor-box">
+            <h2>Humidity: <span id="humidity">--</span> %</h2>
+        </div>
+
+        <canvas id="sensorChart"></canvas>
+    </div>
+
+    <script>
+        const heartRateEl = document.getElementById('heartRate');
+        const tempEl = document.getElementById('temperature');
+        const humidityEl = document.getElementById('humidity');
+
+        let sensorChart = new Chart(document.getElementById('sensorChart').getContext('2d'), {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Heart Rate (BPM)',
+                    borderColor: '#FF5252',
+                    data: [],
+                    fill: false
+                }, {
+                    label: 'Temperature (°C)',
+                    borderColor: '#FFA726',
+                    data: [],
+                    fill: false
+                }, {
+                    label: 'Humidity (%)',
+                    borderColor: '#42A5F5',
+                    data: [],
+                    fill: false
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    x: { display: true },
+                    y: { display: true }
+                }
+            }
+        });
+
+        function updateData() {
+            fetch('/sensor-data')
+                .then(response => response.json())
+                .then(data => {
+                    heartRateEl.textContent = data.heart_rate;
+                    tempEl.textContent = data.temperature;
+                    humidityEl.textContent = data.humidity;
+
+                    let now = new Date().toLocaleTimeString();
+                    let labels = sensorChart.data.labels;
+                    let datasets = sensorChart.data.datasets;
+
+                    labels.push(now);
+                    if (labels.length > 10) labels.shift();
+
+                    datasets[0].data.push(data.heart_rate);
+                    datasets[1].data.push(data.temperature);
+                    datasets[2].data.push(data.humidity);
+
+                    if (datasets[0].data.length > 10) {
+                        datasets.forEach(dataset => dataset.data.shift());
+                    }
+
+                    sensorChart.update();
+                })
+                .catch(error => console.error('Error fetching data:', error));
+        }
+
+        setInterval(updateData, 2000);
+    </script>
+</body>
+</html>
